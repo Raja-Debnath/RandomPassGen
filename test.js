@@ -55,3 +55,5 @@ function startGeneratingPasswords(interval) {
 }
 
 startGeneratingPasswords(5000);
+
+// made changes from ai this need further experiment
