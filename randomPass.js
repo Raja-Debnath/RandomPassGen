@@ -3,143 +3,68 @@ const alpaCheck = true;
 const characterCheck = true;
 const numCheck = true;
 
-const password = [];
+// Expanded character sets
+const numbers = '0123456789';
+const alphabets = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?/';
 
-function getRandomNumber() {
-  const now = new Date();
-
-  // Get various time components
-  const milliseconds = now.getMilliseconds();
-  const seconds = now.getSeconds();
-  const minutes = now.getMinutes();
-  const hours = now.getHours();
-  const microsec = now.getMilliseconds() / 1000;
-  const nanosec = microsec / 1000;
-
-  // Initial seed based on time components
-  let seed = milliseconds + seconds * minutes - hours + microsec * nanosec;
-
-  // Apply multiple arithmetic operations for randomness
-  seed = (seed * 17 + 53) / (seconds + 1);
-  seed = (seed - 31) * (milliseconds + 11);
-  seed = (seed + minutes) / (hours + 3);
-  seed = seed * 29 - seconds * 7;
-
-  // console.log(seed);
-
-  // Ensure the seed is within the range for the number (0-9)
-  const randomCharCode = 48 + (Math.abs(Math.floor(seed)) % 10);
-
-  return String.fromCharCode(randomCharCode);
+// Function to get a character based on time and pool
+function getCharacterFromPool(pool, timeComponent) {
+  const index = timeComponent % pool.length;
+  return pool[index];
 }
-// console.log(getRandomNumber());
 
-function getRandomAlphabet() {
-  const now = new Date();
-
-  // Get various time components
-  const milliseconds = now.getMilliseconds();
-  const seconds = now.getSeconds();
-  const minutes = now.getMinutes();
-  const hours = now.getHours();
-  const microsec = now.getMilliseconds() / 1000;
-  const nanosec = microsec / 1000;
-
-  // Initial seed based on time components
-  let seed = milliseconds + seconds * minutes - hours + microsec * nanosec;
-
-  // Apply multiple arithmetic operations for randomness
-  seed = (seed * 17 + 53) / (seconds + 1);
-  seed = (seed - 31) * (milliseconds + 11);
-  seed = (seed + minutes) / (hours + 3);
-  seed = seed * 29 - seconds * 7;
-
-  // console.log(seed);
-
-  // Ensure the seed is within the range for the alphabet (0-25)
-  const randomCharCode = 65 + (Math.abs(Math.floor(seed)) % 26);
-
-  return String.fromCharCode(randomCharCode);
+// Function to generate a secure character from different pools with delay
+async function generateCharacter(pool) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const now = new Date();
+      const timeComponent = now.getMilliseconds() + now.getSeconds() * 1000 + now.getMinutes() * 60000 + now.getHours() * 3600000;
+      resolve(getCharacterFromPool(pool, timeComponent));
+    }, 100); // Delay of 100ms
+  });
 }
-// console.log(getRandomAlphabet());
 
-function getRandomSymbol() {
-  const now = new Date();
+// Generate a password
+async function generatePassword() {
+  const pools = [];
+  if (alpaCheck) pools.push(alphabets);
+  if (numCheck) pools.push(numbers);
+  if (characterCheck) pools.push(symbols);
 
-  // Get various time components
-  const milliseconds = now.getMilliseconds();
-  const seconds = now.getSeconds();
-  const minutes = now.getMinutes();
-  const hours = now.getHours();
-  const microsec = now.getMilliseconds() / 1000;
-  const nanosec = microsec / 1000;
+  if (pools.length === 0) {
+    throw new Error('At least one character type must be enabled');
+  }
 
-  // Initial seed based on time components
-  let seed = milliseconds + seconds * minutes - hours + microsec * nanosec;
+  // Generate characters with delay
+  const password = [];
+  for (let i = 0; i < inputSize; i++) {
+    const pool = pools[i % pools.length]; // Rotate through pools
+    const character = await generateCharacter(pool);
+    password.push(character);
+  }
 
-  // Apply multiple arithmetic operations for randomness
-  seed = (seed * 17 + 53) / (seconds + 1);
-  seed = (seed - 31) * (milliseconds + 11);
-  seed = (seed + minutes) / (hours + 3);
-  seed = seed * 29 - seconds * 7;
+  // Shuffle password array to ensure randomness
+  for (let i = password.length - 1; i > 0; i--) {
+    const now = new Date();
+    const j = Math.floor((now.getMilliseconds() % (i + 1)) + (now.getSeconds() * 1000) % (i + 1)); // Ensure j is within bounds
+    [password[i], password[j]] = [password[j], password[i]]; // Swap elements
+  }
 
-  // console.log(seed);
-
-  // Ensure the seed is within the range for the symbol ()
-  const randomCharCode = 33 + (Math.abs(Math.floor(seed)) % 15);
-
-  return String.fromCharCode(randomCharCode);
+  return password.join('');
 }
-// console.log(getRandomSymbol());
 
-function getRandomCondition(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-// Generate a random number between 1 and 3
-// console.log(getRandomCondition); // Output: a random number between 1 and 3
-
-// conditional logic based on alphabet , numbers , symbols
-
-if (alpaCheck && characterCheck && numCheck == true) {
-  while (password.length <= inputSize) {
-    let randomNumber = getRandomCondition(1, 3);
-    switch (randomNumber) {
-      case 1:
-        let char = password.push(getRandomAlphabet())
-        setTimeout(char, 2000);
-
-        break;
-      case 2:
-        let sym = password.push(getRandomSymbol())
-        setTimeout(sym, 2000);
-
-        break;
-      case 3:
-        let num = password.push(getRandomNumber())
-        setTimeout(num , 2000);
-        break;
+// Loop to continuously generate passwords
+function startGeneratingPasswords(interval) {
+  setInterval(async () => {
+    try {
+      const password = await generatePassword();
+      console.log(password);
+    } catch (error) {
+      console.error('Error generating password:', error);
     }
-  }
+  }, interval);
 }
-if (alpaCheck && numCheck == true) {
-}
-if (numCheck && characterCheck == true) {
-}
-if (alpaCheck && characterCheck == true) {
-}
-if (alpaCheck == true) {
-  while (password.length <= inputSize) {
-    password.push(getRandomAlphabet());
-  }
-}
-if (characterCheck == true) {
-  while (password.length <= inputSize) {
-    password.push(getRandomSymbol());
-  }
-}
-if (numCheck == true) {
-  while (password.length <= inputSize) {
-    password.push(getRandomNumber());
-  }
-}
-console.log(password);
+
+// Start generating passwords every 5 seconds (5000ms)
+startGeneratingPasswords(5000);
