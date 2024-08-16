@@ -54,17 +54,7 @@ async function generatePassword() {
   return password.join('');
 }
 
-// Loop to continuously generate passwords
-function startGeneratingPasswords(interval) {
-  setInterval(async () => {
-    try {
-      const password = await generatePassword();
-      console.log(password);
-    } catch (error) {
-      console.error('Error generating password:', error);
-    }
-  }, interval);
-}
-
-// Start generating passwords every 5 seconds (5000ms)
-startGeneratingPasswords(5000);
+// Generate a single password and log it
+generatePassword()
+  .then(password => console.log(password))
+  .catch(error => console.error('Error generating password:', error));
