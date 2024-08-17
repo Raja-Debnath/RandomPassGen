@@ -1,3 +1,17 @@
+import ipify from "ipify";
+const ip = await ipify({useIPv6: false})
+console.log(ip);
+let val = ip.slice(-3)
+let val1= val.slice(0,1)
+let val2= val.slice(1,2)
+let val3= val.slice(2,3)
+// console.log(val);
+// console.log(val1);
+// console.log(val2);
+// console.log(val3);
+
+
+
 const inputSize = 12;
 const alpaCheck = true;
 const characterCheck = true;
@@ -47,7 +61,10 @@ async function generatePassword() {
   // Shuffle password array to ensure randomness
   for (let i = password.length - 1; i > 0; i--) {
     const now = new Date();
-    const j = Math.floor((now.getMilliseconds() % (i + 1)) + (now.getSeconds() * 1000) % (i + 1)); // Ensure j is within bounds
+    const j = Math.floor((now.getMilliseconds() % (i + 1)) + (now.getSeconds() * 1000) % (i + 1)+(val*val2+val3)); // Ensure j is within bounds
+    console.log(j);
+    
+
     [password[i], password[j]] = [password[j], password[i]]; // Swap elements
   }
 
@@ -58,3 +75,12 @@ async function generatePassword() {
 generatePassword()
   .then(password => console.log(password))
   .catch(error => console.error('Error generating password:', error));
+
+
+
+// async function fetchPublicIp() {
+//   const response = await fetch('https://api.ipify.org?format=json');
+//   const data = await response.json();
+//   return data.ip;
+// }
+// console.log(fetchPublicIp());
