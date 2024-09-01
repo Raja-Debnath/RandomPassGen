@@ -1,9 +1,11 @@
-// app/generate-password.jsx
-import ipify from 'ipify';
+"use client";
+import React, { useState, useEffect, useRef } from 'react';
+import { LuRefreshCw } from "react-icons/lu";
 
 async function fetchIp() {
-  const ip = await ipify({ useIPv6: false });
-  return ip;
+  const response = await fetch('https://api.ipify.org?format=json');
+  const data = await response.json();
+  return data.ip;
 }
 
 function getCharacterFromPool(pool, timeComponent) {
@@ -25,7 +27,7 @@ async function generateCharacter(pool) {
   });
 }
 
-export default async function GeneratePassword() {
+async function generatePassword() {
   try {
     const ip = await fetchIp();
     let val = ip.slice(-3);
@@ -33,17 +35,20 @@ export default async function GeneratePassword() {
     let val2 = parseInt(val.slice(1, 2), 10);
     let val3 = parseInt(val.slice(2, 3), 10);
 
-    const inputSize = 12;
+    const inputSize = 16;
     const alpaCheck = true;
+    const smallAlpaCheck = true;
     const characterCheck = true;
     const numCheck = true;
 
     const numbers = '0123456789';
-    const alphabets = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    const alphabets = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const smallAlphabets = 'abcdefghijklmnopqrstuvwxyz';
     const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?/';
 
     const pools = [];
     if (alpaCheck) pools.push(alphabets);
+    if (smallAlpaCheck) pools.push(smallAlphabets);
     if (numCheck) pools.push(numbers);
     if (characterCheck) pools.push(symbols);
 
@@ -51,26 +56,89 @@ export default async function GeneratePassword() {
       throw new Error('At least one character type must be enabled');
     }
 
-    const password = [];
+    const generatedPassword = [];
     for (let i = 0; i < inputSize; i++) {
       const pool = pools[i % pools.length];
       const character = await generateCharacter(pool);
-      password.push(character);
+      generatedPassword.push(character);
     }
 
-    for (let i = password.length - 1; i > 0; i--) {
+    for (let i = generatedPassword.length - 1; i > 0; i--) {
       const now = new Date();
       const j =
         Math.floor(
           (now.getMilliseconds() % (i + 1)) +
-          (now.getSeconds() * 1000) % (i + 1) +
-          (val1 * val2 + val3)
+          (now.getSeconds() * 1000) % (i + 1) + (val1 * val2 + val3)
         );
-      [password[i], password[j]] = [password[j], password[i]];
+      [generatedPassword[i], generatedPassword[j]] = [generatedPassword[j], generatedPassword[i]];
+    }
+    return generatedPassword.join('');
+  } catch (error) {
+    console.error('Error generating password:', error);
+    return '';
+  }
+}
+
+export default function GeneratePassword() {
+  const [Password, setPassword] = useState('');
+  const [buttonText, setButtonText] = useState('Copy');
+  const [isClicked, setIsClicked] = useState(false);
+  const darkThemeMq = window.matchMedia("(prefers-color-scheme: dark)");
+  const hasRunRef = useRef(false);
+
+  useEffect(() => {
+    if (hasRunRef.current) return; // Exit if already run
+    hasRunRef.current = true; // Mark as run
+
+    async function generate() {
+      const password = await generatePassword();
+      setPassword(password);
     }
 
-    return <p>Generated Password: {password.join('')}</p>;
-  } catch (error) {
-    return <p>Error generating password: {error.message}</p>;
-  }
+    generate();
+  }, []);
+
+  const handleButtonClick = async () => {
+    setIsClicked(true);
+    setPassword("");
+    setTimeout(() => setIsClicked(false), 2000);// Duration of animation
+    const newPassword = await generatePassword();
+    setPassword(newPassword);
+  };
+
+  const copyPassword = () => {
+    if (Password) {
+      navigator.clipboard.writeText(Password)
+        .then(() => {
+          setButtonText('Copied!');
+          setTimeout(() => setButtonText('Copy'), 1000); // Reset button text after 1 second
+        })
+        .catch(err => {
+          console.error('Failed to copy password:', err);
+        });
+    }
+  };
+
+  console.log(darkThemeMq);
+  console.log(Password);
+
+  return (
+    <main className='h-screen bg-slate-950 cursor-default'>
+      <div className='w-fit mx-auto pt-28'>
+        <div>
+          <h1 className='text-white text-[3.3rem] text-center'>Random Password Generator.</h1>
+          <h2 className='text-white text-2xl text-center'>Ensure your online safety with strong, secure passwords—generate them effortlessly.</h2>
+        </div>
+        <div className='w-9/12 h-14 flex mx-auto py-2.5 pl-[30px] mt-12 bg-slate-900 items-center rounded-full'>
+          <div className='flex w-full items-center'>
+            <p className='text-white'>{Password || 'Generating...' }</p>
+            <LuRefreshCw onClick={handleButtonClick} className={`ml-auto text-[1.7rem] mr-2 text-white cursor-pointer ${isClicked ? 'animate-wiggle' : ''}`} />
+          </div>
+          <div className='w-[25%] h-14 cursor-pointer flex items-center bg-pink-800 ml-auto rounded-e-full' onClick={copyPassword}>
+            <span className="font-medium text-white mx-auto text-[1.5rem]"> {buttonText}</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
 }

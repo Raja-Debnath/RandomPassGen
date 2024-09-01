@@ -1,5 +1,5 @@
 import React from "react"
-import GeneratePassword from "@/components/randpass"
+import GeneratePassword from "@/components/Randpass"
 
 export default function randpass() {
   return(
