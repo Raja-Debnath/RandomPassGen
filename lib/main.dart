@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -38,80 +38,107 @@ class PasswordGeneratorScreen extends StatefulWidget {
       _PasswordGeneratorScreenState();
 }
 
-class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
-    with SingleTickerProviderStateMixin {
+class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen> {
   bool _includeAlphabets = true;
   bool _includeNumbers = true;
   bool _includeSymbols = true;
   int _passwordLength = 12;
   String _generatedPassword = '';
-  String _passwordStrength = 'Weak';
+  String _passwordStrength = 'Weak (0 bits)';
   List<String> _passwordHistory = [];
-  late AnimationController _animationController;
-  late Animation<double> _animation;
+  String _hints = '';
 
   final String numbers = '0123456789';
   final String alphabets =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
   final String symbols = '!@#\$%^&*()_+-=[]{}|;:,.<>?/';
 
+  final TextEditingController _lengthController =
+  TextEditingController(text: '12');
+  final TextEditingController _hintsController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _loadPasswordHistory();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _animation =
-        CurvedAnimation(parent: _animationController, curve: Curves.easeInOut);
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _lengthController.dispose();
+    _hintsController.dispose();
     super.dispose();
   }
 
-  String generatePassword() {
+  String generatePasswordWithHints() {
     final pools = <String>[];
     if (_includeAlphabets) pools.add(alphabets);
     if (_includeNumbers) pools.add(numbers);
     if (_includeSymbols) pools.add(symbols);
 
     if (pools.isEmpty) {
-      throw Exception('At least one character type must be enabled');
+      throw Exception('At least 1 character type must be enabled');
     }
 
+    final hintsList = _hints.split(',').map((hint) => hint.trim()).toList();
     final password = <String>[];
     final random = Random();
+
+    // Generate positions for hints
+    final hintCount = hintsList.length;
+    final hintIndices = List.generate(hintCount, (index) => index);
+    hintIndices.shuffle(random);
+
+    final hintPositions = <int>[];
+    for (int i = 0; i < hintCount; i++) {
+      hintPositions.add(random.nextInt(_passwordLength));
+    }
+    hintPositions.sort();
+
     for (int i = 0; i < _passwordLength; i++) {
-      String pool = pools[random.nextInt(pools.length)];
-      String character = pool[random.nextInt(pool.length)];
-      password.add(character);
+      if (hintPositions.isNotEmpty && hintPositions.first == i) {
+        // Place hint in the current position
+        password.add(hintsList.removeAt(0));
+        hintPositions.removeAt(0);
+      } else {
+        String pool = pools[random.nextInt(pools.length)];
+        String character = pool[random.nextInt(pool.length)];
+        password.add(character);
+      }
     }
 
     return password.join('');
   }
 
   void updatePasswordStrength(String password) {
-    int score = 0;
-    if (password.length >= 8) score++;
-    if (RegExp(r'[A-Z]').hasMatch(password)) score++;
-    if (RegExp(r'[a-z]').hasMatch(password)) score++;
-    if (RegExp(r'[0-9]').hasMatch(password)) score++;
-    if (RegExp(r'[!@#\$%^&*()_+\-=\[\]{}|;:,.<>?/]').hasMatch(password))
-      score++;
+    int entropy = calculateEntropy(password);
+    String strength = getStrength(entropy);
 
     setState(() {
-      if (score <= 2) {
-        _passwordStrength = 'Weak';
-      } else if (score == 3) {
-        _passwordStrength = 'Medium';
-      } else {
-        _passwordStrength = 'Strong';
-      }
+      _passwordStrength =
+      'Strength: $strength (${entropy.toStringAsFixed(2)} bits)';
     });
+  }
+
+  int calculateEntropy(String password) {
+    int characterSetSize = 0;
+    if (RegExp(r'[A-Z]').hasMatch(password))
+      characterSetSize += 26; // Uppercase letters
+    if (RegExp(r'[a-z]').hasMatch(password))
+      characterSetSize += 26; // Lowercase letters
+    if (RegExp(r'[0-9]').hasMatch(password)) characterSetSize += 10; // Numbers
+    if (RegExp(r'[!@#\$%^&*()_+\-=\[\]{}|;:,.<>?/]').hasMatch(password))
+      characterSetSize += 32; // Symbols
+
+    if (characterSetSize == 0) return 0;
+
+    return (password.length * log2(characterSetSize.toDouble())).toInt();
+  }
+
+  String getStrength(int entropy) {
+    if (entropy >= 80) return 'Strong';
+    if (entropy >= 40) return 'Medium';
+    return 'Weak';
   }
 
   void _savePasswordHistory() async {
@@ -148,7 +175,7 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Password History'),
+          title: const Text('History'),
           content: SizedBox(
             width: double.maxFinite,
             height: 400, // Increased height
@@ -162,7 +189,7 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
                         color: Colors.purple[50],
                         child: ListTile(
                           title:
-                              Text('${index + 1}. ${_passwordHistory[index]}'),
+                          Text('${index + 1}. ${_passwordHistory[index]}'),
                           trailing: IconButton(
                             icon: const Icon(Icons.copy),
                             onPressed: () {
@@ -171,7 +198,7 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content:
-                                      Text('Password is copied to clipboard!'),
+                                  Text('Password is copied to clipboard!'),
                                 ),
                               );
                             },
@@ -192,10 +219,6 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
                       },
                       child: const Text('Clear All'),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Close'),
-                    ),
                   ],
                 ),
               ],
@@ -211,7 +234,6 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Info'),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,7 +246,7 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
                   },
                 ),
                 ListTile(
-                  title: const Text('Tips for Passwords'),
+                  title: const Text('Password Tips'),
                   onTap: () {
                     Navigator.of(context).pop();
                     _showTipsDialog();
@@ -233,12 +255,6 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
         );
       },
     );
@@ -249,26 +265,20 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Tips for Passwords'),
+          title: const Text('Password Tips'),
           content: SingleChildScrollView(
             child: ListBody(
               children: const [
                 Text(
                   '• Use at least 12 characters.\n'
-                  '• Include both uppercase and lowercase letters.\n'
-                  '• Add numbers and symbols.\n'
-                  '• Avoid using real words or easily guessable information.\n'
-                  '• Consider using a password manager for stronger security.',
+                      '• Include both uppercase and lowercase letters.\n'
+                      '• Add numbers and symbols.\n'
+                      '• Avoid using real words or easily guessable information.\n'
+                      '• Consider using a password manager for stronger security.\n',
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
         );
       },
     );
@@ -284,47 +294,53 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text(
+                '\nWEBSITE :- ',
+                style: TextStyle(color: Colors.black),
+              ),
               GestureDetector(
                 onTap: () {
                   launchUrl(
                       Uri.parse('https://raja-debnath.github.io/Pass_deploy/'));
                 },
                 child: const Text(
-                  'WEBSITE: https://raja-debnath.github.io/Pass_deploy/',
+                  'https://raja-debnath.github.io/Pass_deploy/\n',
                   style: TextStyle(
                       color: Colors.blue, decoration: TextDecoration.underline),
                 ),
               ),
               const SizedBox(height: 10),
+              const Text(
+                'CONTACT MAIL :- ',
+                style: TextStyle(color: Colors.black),
+              ),
               GestureDetector(
                 onTap: () {
                   launchUrl(Uri.parse('mailto:mrayushh.at@gmail.com'));
                 },
                 child: const Text(
-                  'CONTACT E-MAIL: mrayushh.at@gmail.com',
+                  'mrayushh.at@gmail.com\n',
                   style: TextStyle(
                       color: Colors.blue, decoration: TextDecoration.underline),
                 ),
               ),
               const SizedBox(height: 10),
+              const Text(
+                'GITHUB :- ',
+                style: TextStyle(color: Colors.black),
+              ),
               GestureDetector(
                 onTap: () {
                   launchUrl(Uri.parse('https://github.com/Mr-Ayushh'));
                 },
                 child: const Text(
-                  'GITHUB: https://github.com/Mr-Ayushh',
+                  'https://github.com/Mr-Ayushh\n',
                   style: TextStyle(
                       color: Colors.blue, decoration: TextDecoration.underline),
                 ),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
         );
       },
     );
@@ -350,85 +366,172 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              FittedBox(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              Center(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Checkbox(
-                            value: _includeAlphabets,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                _includeAlphabets = value ?? false;
-                              });
-                            },
-                            activeColor: Colors.purple,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(5),
+                                  color: _includeAlphabets
+                                      ? Colors.purple
+                                      : Colors.grey[300],
+                                  border: Border.all(
+                                    color: Colors.purple,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Checkbox(
+                                  value: _includeAlphabets,
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      _includeAlphabets = value ?? false;
+                                    });
+                                  },
+                                  activeColor: Colors.transparent,
+                                  checkColor: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text('Alphabets',
+                                  style: TextStyle(color: Colors.black)),
+                            ],
                           ),
-                          const Text('Alphabets',
-                              style: TextStyle(color: Colors.black)),
+                        ),
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(5),
+                                  color: _includeNumbers
+                                      ? Colors.purple
+                                      : Colors.grey[300],
+                                  border: Border.all(
+                                    color: Colors.purple,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Checkbox(
+                                  value: _includeNumbers,
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      _includeNumbers = value ?? false;
+                                    });
+                                  },
+                                  activeColor: Colors.transparent,
+                                  checkColor: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text('Numbers',
+                                  style: TextStyle(color: Colors.black)),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(5),
+                                  color: _includeSymbols
+                                      ? Colors.purple
+                                      : Colors.grey[300],
+                                  border: Border.all(
+                                    color: Colors.purple,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Checkbox(
+                                  value: _includeSymbols,
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      _includeSymbols = value ?? false;
+                                    });
+                                  },
+                                  activeColor: Colors.transparent,
+                                  checkColor: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text('Symbols',
+                                  style: TextStyle(color: Colors.black)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      child: TextField(
+                        controller: _lengthController,
+                        decoration: InputDecoration(
+                          labelText: 'Password Length',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[200],
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.digitsOnly
                         ],
+                        onChanged: (value) {
+                          setState(() {
+                            _passwordLength = int.tryParse(value) ?? 12;
+                          });
+                        },
                       ),
                     ),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Checkbox(
-                            value: _includeNumbers,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                _includeNumbers = value ?? false;
-                              });
-                            },
-                            activeColor: Colors.purple,
+                    const SizedBox(height: 20),
+                    const Text('Combine Hints (Optional)'),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      child: TextField(
+                        controller: _hintsController,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const Text('Numbers',
-                              style: TextStyle(color: Colors.black)),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Checkbox(
-                            value: _includeSymbols,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                _includeSymbols = value ?? false;
-                              });
-                            },
-                            activeColor: Colors.purple,
-                          ),
-                          const Text('Symbols',
-                              style: TextStyle(color: Colors.black)),
-                        ],
+                          filled: true,
+                          fillColor: Colors.grey[200],
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _hints = value;
+                          });
+                        },
                       ),
                     ),
                   ],
                 ),
               ),
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Password Length:',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _passwordLength = int.tryParse(value) ?? 12;
-                  });
-                },
-              ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  final password = generatePassword();
+                  final password = generatePasswordWithHints();
                   setState(() {
                     _generatedPassword = password;
                     updatePasswordStrength(password);
@@ -437,9 +540,9 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                 ),
-                child: Text(
+                child: const Text(
                   'GENERATE',
                   style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
@@ -456,42 +559,41 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
                     width: 1,
                   ),
                 ),
-                child: AnimatedBuilder(
-                  animation: _animation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: 1 + _animation.value * 0.05,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            SelectableText(
-                              _generatedPassword.isEmpty
-                                  ? 'Your password will appear here.'
-                                  : _generatedPassword,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontFamily: 'Courier',
-                                color: Colors.black87,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Strength: $_passwordStrength',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: _passwordStrength == 'Strong'
-                                    ? Colors.green
-                                    : _passwordStrength == 'Medium'
-                                        ? Colors.orange
-                                        : Colors.red,
-                              ),
-                            ),
-                          ],
-                        ),
+                child: Column(
+                  children: [
+                    SelectableText(
+                      _generatedPassword.isEmpty
+                          ? 'Password will appear here.'
+                          : _generatedPassword,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontFamily: 'Courier',
+                        color: Colors.black87,
                       ),
-                    );
-                  },
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _passwordStrength,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: _passwordStrength.contains('Strong')
+                            ? Colors.green
+                            : _passwordStrength.contains('Medium')
+                            ? Colors.orange
+                            : Colors.red,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'The more bits of entropy, the more secure your password. Aim for higher entropy for better protection.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 20),
@@ -499,20 +601,20 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
                 onPressed: _generatedPassword.isEmpty
                     ? null
                     : () {
-                        Clipboard.setData(
-                          ClipboardData(text: _generatedPassword),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Password is copied to clipboard!'),
-                          ),
-                        );
-                        addToHistory(_generatedPassword);
-                      },
+                  Clipboard.setData(
+                    ClipboardData(text: _generatedPassword),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Password is copied to clipboard!'),
+                    ),
+                  );
+                  addToHistory(_generatedPassword);
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                 ),
                 child: const Text(
                   'COPY',
@@ -525,4 +627,6 @@ class _PasswordGeneratorScreenState extends State<PasswordGeneratorScreen>
       ),
     );
   }
+
+  double log2(double x) => log(x) / ln2;
 }
