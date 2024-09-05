@@ -17,12 +17,13 @@ const amita = Amita({
   display: 'swap',
 })
 
-const roboto = Caveat({
+const caveat = Caveat({
   subsets: ["latin"],
   weight: ["400", "500", "700"],
-  variable: "--font-Roboto",
+  variable: "--font-Caveat",
   display: 'swap',
 })
+
 
 export const metadata = {
   title: "Create Next App",
@@ -32,7 +33,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} ${rubik_distressed.variable} ${amita.variable} ${roboto.variable}`}>{children}</body>
+      <body className={`${inter.className} ${rubik_distressed.variable} ${amita.variable} ${caveat.variable}`}>{children}</body>
     </html>
   );
 }

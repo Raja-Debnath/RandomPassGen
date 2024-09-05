@@ -83,13 +83,18 @@ export default function GeneratePassword() {
   const [Password, setPassword] = useState('');
   const [buttonText, setButtonText] = useState('Copy');
   const [isClicked, setIsClicked] = useState(false);
-  const darkThemeMq = window.matchMedia("(prefers-color-scheme: dark)");
+  const [darkThemeMq, setDarkThemeMq] = useState(null);
   const hasRunRef = useRef(false);
 
   useEffect(() => {
     if (hasRunRef.current) return; // Exit if already run
     hasRunRef.current = true; // Mark as run
-
+   
+    if (typeof window !== 'undefined') { // Check if window is defined
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      setDarkThemeMq(mq);
+    }
+    
     async function generate() {
       const password = await generatePassword();
       setPassword(password);
@@ -131,12 +136,16 @@ export default function GeneratePassword() {
         </div>
         <div className='w-9/12 h-14 flex mx-auto py-2.5 pl-[30px] mt-12 bg-slate-900 items-center rounded-full'>
           <div className='flex w-full items-center'>
-            <p className='text-white'>{Password || 'Generating...' }</p>
+            <p className='text-white'>{Password || 'Generating...'}</p>
             <LuRefreshCw onClick={handleButtonClick} className={`ml-auto text-[1.7rem] mr-2 text-white cursor-pointer ${isClicked ? 'animate-wiggle' : ''}`} />
           </div>
           <div className='w-[25%] h-14 cursor-pointer flex items-center bg-pink-800 ml-auto rounded-e-full' onClick={copyPassword}>
             <span className="font-medium text-white mx-auto text-[1.5rem]"> {buttonText}</span>
           </div>
+        </div>
+        <div className='w-8/12 flex mx-auto py-2.5 px-[30px] mt-8 bg-slate-900'>
+          <h2 className='font-huehue text-white text-3xl mx-auto'>Strength Box</h2>
+
         </div>
       </div>
     </main>

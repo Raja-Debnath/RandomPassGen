@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Nerko+One&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -33,9 +34,8 @@ body {
   }
 
   h2 {
-    font-family: var(--font-Roboto);
+    font-family: var(--font-Caveat);
   }
-
   span {
     font-family: var(--font-Amita);
   }

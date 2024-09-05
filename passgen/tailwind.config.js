@@ -26,7 +26,11 @@ module.exports = {
         'slate-900': "#0f172a",
         'pink-800': "#9d174d",
       },
+      fontFamily: {
+        huehue: ["Nerko One", 'cursive']
+      },
     },
+
   },
   plugins: [],
 };
