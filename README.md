@@ -1,61 +1,36 @@
-Certainly! Here’s a straightforward and ready-to-use template for your `README.md` file:
+This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-```markdown
-# Password Generator App
+## Getting Started
 
-## Overview
+First, run the development server:
 
-A simple Flutter application to generate secure passwords. Customize the password length and choose to include alphabets, numbers, and symbols. Features include password history, tips for strong passwords, and developer information.
-
-## Features
-
-- Customizable password length and character types
-- Password history management
-- Tips for creating strong passwords
-- About Us section with contact information
-
-## Installation
-
-1. **Clone the repository:**
-
-2. **Navigate to the project directory:**
-
-   ```bash
-   cd yourrepository
-   ```
-
-3. **Install dependencies:**
-
-   ```bash
-   flutter pub get
-   ```
-
-4. **Run the app:**
-
-   ```bash
-   flutter run
-   ```
-
-## Usage
-
-- **Generate Password:**
-  - Select character types and enter the desired length.
-  - Click "GENERATE" to create a password.
-
-- **View History:**
-  - Access the history via the app bar to view and manage previous passwords.
-
-- **Tips and About Us:**
-  - Access tips and developer information from the info icon in the app bar.
-
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-- **Email:** [mrayushh.at@gmail.com](mailto:mrayushh.at@gmail.com)
-- **GitHub:** [Mr-Ayushh](https://github.com/Mr-Ayushh)
-- **Website:** [Pass_deploy](https://raja-debnath.github.io/Pass_deploy/)
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
