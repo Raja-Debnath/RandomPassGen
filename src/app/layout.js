@@ -1,5 +1,6 @@
 import { Inter, Rubik_Distressed, Caveat, Amita } from "next/font/google";
 import "./globals.css";
+import Provider from "./Provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,7 +34,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} ${rubik_distressed.variable} ${amita.variable} ${caveat.variable}`}>{children}</body>
+      <body suppressHydrationWarning={true} className={`${inter.className} ${rubik_distressed.variable} ${amita.variable} ${caveat.variable}`}>
+        <Provider>{children}</Provider>
+      </body>
     </html>
   );
 }
