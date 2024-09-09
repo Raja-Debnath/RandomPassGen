@@ -29,7 +29,7 @@ Install dependencies
   npm install
 ```
 
-Start the server
+Run the server
 
 ```bash
   npm run dev
