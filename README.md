@@ -35,6 +35,9 @@ Run the server
   npm run dev
 ```
 
+## Screenshots
+
+![Screenshot (334)](https://github.com/user-attachments/assets/2eea0fe2-2971-46d0-a7e1-a257f6cea340)
 
 ## FAQ
 
@@ -63,7 +66,5 @@ Yes, our generator allows you to customize the length and complexity of your pas
 
 ## Badges
 
-
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
-
 
