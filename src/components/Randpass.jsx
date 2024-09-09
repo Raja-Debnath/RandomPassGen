@@ -177,28 +177,7 @@ export default function GeneratePassword(props) {
         )}
         <div className='w-8/12 mx-auto py-2.5 px-[30px] mt-8 bg-slate-900 rounded-lg'>
           <div className="flex gap-28 items-center">
-            <div className="w-fit">
-              <div className="flex flex-col gap-2">
-                <Component {...getBaseProps()}>
-                  <VisuallyHidden>
-                    <input {...getInputProps()} />
-                  </VisuallyHidden>
-                  <div
-                    {...getWrapperProps()}
-                    className={slots.wrapper({
-                      class: [
-                        "w-8 h-8",
-                        "flex items-center justify-center",
-                        "rounded-lg bg-default-100 hover:bg-default-200",
-                      ],
-                    })}
-                  >
-                    {isSelected ? <SunIcon /> : <MoonIcon />}
-                  </div>
-                </Component>
-              </div>
-            </div>
-            <h2 className='font-NerkoOne mr-auto text-white text-3xl w-fit'>Strength Box</h2>
+            <h2 className='font-NerkoOne mx-auto text-white text-3xl w-fit'>Strength Box</h2>
 
           </div>
           <div className='flex justify-between mt-5'>
