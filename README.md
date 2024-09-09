@@ -37,7 +37,7 @@ Run the server
 
 ## Screenshots
 
-![Screenshot (334)](https://github.com/user-attachments/assets/2eea0fe2-2971-46d0-a7e1-a257f6cea340)
+![Sample](https://github.com/user-attachments/assets/0056ab88-8b6c-4102-b98b-6817886e0817)
 
 ## FAQ
 
