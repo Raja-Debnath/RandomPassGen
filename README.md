@@ -1,7 +1,5 @@
 <<<<<<< HEAD
-# passgen
-
-A new Flutter project.
+# PASSGEN
 
 ## Getting Started
 
@@ -29,16 +27,6 @@ A simple and customizable password generator built with Flutter. This app allows
 - **Password History:** View and copy previous passwords from the history.
 - **Password Strength Indicator:** Displays the strength of the generated password based on entropy.
 - **Information and Tips:** Access information about the app and tips for creating strong passwords.
-
-## Screenshots
-
-![IMG-20240902-WA0023](https://github.com/user-attachments/assets/b65ecdc3-d2f8-4bae-a29a-217b1095c269)
-![IMG-20240902-WA0024](https://github.com/user-attachments/assets/da4b2556-dd25-4b58-9ca8-67a77442d507)
-![IMG-20240902-WA0020](https://github.com/user-attachments/assets/1b3fc9b4-eef5-4ae0-a3d2-dc34a95a8fa3)
-![IMG-20240902-WA0021](https://github.com/user-attachments/assets/f291cb0b-b272-4b06-bde2-8b2086e2ae6b)
-![IMG-20240902-WA0019](https://github.com/user-attachments/assets/6a79a4af-bf1f-4162-8c0c-9e934a14a2f3)
-![IMG-20240902-WA0022](https://github.com/user-attachments/assets/965524c4-c6cf-4fb9-a63a-47ec5b95e31d)
-![IMG-20240902-WA0018](https://github.com/user-attachments/assets/c7ea1c36-0830-4da5-a749-08e35abcce90)
 
 ## Installation
 
