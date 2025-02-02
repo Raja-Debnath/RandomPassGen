@@ -1,252 +1,268 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import { LuRefreshCw } from "react-icons/lu";
-import { SunIcon } from '@/assests/SunIcon';
-import { MoonIcon } from '@/assests/MoonIcon';
-import { Checkbox, Slider, Switch, VisuallyHidden, useSwitch } from "@nextui-org/react";
+import { Checkbox, Slider, VisuallyHidden, useSwitch } from "@nextui-org/react";
 
-async function fetchIp() {
-  const response = await fetch('https://api.ipify.org?format=json');
-  const data = await response.json();
-  return data.ip;
-}
+const secureRandom = (max) => {
+  const randomBuffer = new Uint32Array(1);
+  window.crypto.getRandomValues(randomBuffer);
+  return randomBuffer[0] % max;
+};
 
-function getCharacterFromPool(pool, timeComponent) {
-  const index = timeComponent % pool.length;
-  return pool[index];
-}
-
-async function generateCharacter(pool) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const now = new Date();
-      const timeComponent =
-        now.getMilliseconds() +
-        now.getSeconds() * 1000 +
-        now.getMinutes() * 60000 +
-        now.getHours() * 3600000;
-      resolve(getCharacterFromPool(pool, timeComponent));
-    }, 100);
-  });
-}
-
-export default function GeneratePassword(props) {
-  const hasRunRef = useRef(false);
-  const [Password, setPassword] = useState('');
+export default function GeneratePassword() {
+  const [password, setPassword] = useState("");
   const [isClicked, setIsClicked] = useState(false);
-  const [buttonText, setButtonText] = useState('Copy');
+  const [buttonText, setButtonText] = useState("Copy");
   const [isAlphaSelected, setIsAlphaSelected] = useState(true);
   const [isSmallAlphSelected, setIsSmallAlphSelected] = useState(true);
-  const [isSpecialCharacterSelected, setIsSpecialCharacterSelected] = useState(true);
+  const [isSpecialCharacterSelected, setIsSpecialCharacterSelected] =
+    useState(true);
   const [isNumbersSelected, setIsNumbersSelected] = useState(true);
-  const [passwordLength, setPasswordLength] = useState(16);
-  const [warningMessage, setWarningMessage] = useState('');
-  const {
-    Component,
-    slots,
-    isSelected,
-    getBaseProps,
-    getInputProps,
-    getWrapperProps
-  } = useSwitch(props);
-  const selectedCount = [isAlphaSelected, isSmallAlphSelected, isSpecialCharacterSelected, isNumbersSelected].filter(Boolean).length;
+  const [passwordLength, setPasswordLength] = useState(12);
+  const [error, setError] = useState("");
+  const [warning, setWarning] = useState("");
+  const selectedCount = [
+    isAlphaSelected,
+    isSmallAlphSelected,
+    isSpecialCharacterSelected,
+    isNumbersSelected,
+  ].filter(Boolean).length;
   const shouldDisable = selectedCount <= 1;
 
-  async function generatePassword() {
-    try {
-      if (passwordLength > 32) {
-        setWarningMessage('Password may take a bit longer to generate due to length.');
-      } else {
-        setWarningMessage('');
-      }
-
-      const ip = await fetchIp();
-      let val = ip.slice(-3);
-      let val1 = parseInt(val.slice(0, 1), 10);
-      let val2 = parseInt(val.slice(1, 2), 10);
-      let val3 = parseInt(val.slice(2, 3), 10);
-
-      const inputSize = passwordLength;
-      const alpaCheck = isAlphaSelected;
-      const smallAlpaCheck = isSmallAlphSelected;
-      const characterCheck = isSpecialCharacterSelected;
-      const numCheck = isNumbersSelected;
-
-      const numbers = '0123456789';
-      const alphabets = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      const smallAlphabets = 'abcdefghijklmnopqrstuvwxyz';
-      const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?/';
-
-      const pools = [];
-      if (alpaCheck) pools.push(alphabets);
-      if (smallAlpaCheck) pools.push(smallAlphabets);
-      if (numCheck) pools.push(numbers);
-      if (characterCheck) pools.push(symbols);
-
-      if (pools.length === 0) {
-        throw new Error('At least one character type must be enabled');
-      }
-
-      const generatedPassword = [];
-      for (let i = 0; i < inputSize; i++) {
-        const pool = pools[i % pools.length];
-        const character = await generateCharacter(pool);
-        generatedPassword.push(character);
-      }
-
-      for (let i = generatedPassword.length - 1; i > 0; i--) {
-        const now = new Date();
-        const j =
-          Math.floor(
-            (now.getMilliseconds() % (i + 1)) +
-            (now.getSeconds() * 1000) % (i + 1) + (val1 * val2 + val3)
-          );
-        [generatedPassword[i], generatedPassword[j]] = [generatedPassword[j], generatedPassword[i]];
-      }
-      return generatedPassword.join('');
-    } catch (error) {
-      console.error('Error generating password:', error);
-      return '';
-    }
-  }
-
-  useEffect(() => {
-    if (hasRunRef.current) return;
-    setPassword('')
-    async function generatePasswordOnSettingsChange() {
-      const newPassword = await generatePassword();
-      setPassword(newPassword);
-    }
-    generatePasswordOnSettingsChange();
-  }, [isAlphaSelected, isNumbersSelected, isSmallAlphSelected, isSpecialCharacterSelected, passwordLength]);
-
-  const handleButtonClick = async () => {
-    setIsClicked(true);
-    setPassword("");
-    setTimeout(() => setIsClicked(false), 2000);
-    const newPassword = await generatePassword();
-    setPassword(newPassword);
+  const characterPools = {
+    uppercase: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    lowercase: "abcdefghijklmnopqrstuvwxyz",
+    numbers: "0123456789",
+    symbols: "!@#$%^&*()_+-=[]{}|;:,.<>?/",
   };
 
-  const copyPassword = () => {
-    if (Password) {
-      navigator.clipboard.writeText(Password)
-        .then(() => {
-          setButtonText('Copied!');
-          setTimeout(() => setButtonText('Copy'), 1000);
-        })
-        .catch(err => {
-          console.error('Failed to copy password:', err);
-        });
+  const checkForWeakConfigurations = () => {
+    let warningMessage = "";
+
+    // Check if password length is too short
+    if (passwordLength < 12) {
+      warningMessage += "Password length is too short. ";
+    }
+
+    // Check if too few character types are selected
+    if (selectedCount <= 2) {
+      warningMessage += "Fewer character types reduce password strength. ";
+    }
+
+    // Update the warning state
+    setWarning(warningMessage.trim());
+  };
+
+  const generatePassword = useCallback(async () => {
+    try {
+      setError("");
+      const enabledPools = [
+        ...(isAlphaSelected ? [characterPools.uppercase] : []),
+        ...(isSmallAlphSelected ? [characterPools.lowercase] : []),
+        ...(isNumbersSelected ? [characterPools.numbers] : []),
+        ...(isSpecialCharacterSelected ? [characterPools.symbols] : []),
+      ];
+
+      if (enabledPools.length === 0) {
+        throw new Error("Enable at least one character type");
+      }
+
+      // Generate base password using cryptographically secure random values
+      let passwordArray = Array.from({ length: passwordLength }, () => {
+        const pool = enabledPools[secureRandom(enabledPools.length)];
+        return pool[secureRandom(pool.length)];
+      });
+
+      // Secure Fisher-Yates shuffle with crypto RNG
+      for (let i = passwordArray.length - 1; i > 0; i--) {
+        const j = secureRandom(i + 1);
+        [passwordArray[i], passwordArray[j]] = [
+          passwordArray[j],
+          passwordArray[i],
+        ];
+      }
+
+      setPassword(passwordArray.join(""));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Password generation failed"
+      );
+      setPassword("");
+    }
+  }, [
+    isAlphaSelected,
+    isSmallAlphSelected,
+    isNumbersSelected,
+    isSpecialCharacterSelected,
+    passwordLength,
+  ]);
+
+  const HandleRegeneratePassword = () => {
+    setIsClicked(true);
+    setTimeout(() => setIsClicked(false), 2000);
+    generatePassword();
+  };
+
+  // Regenerate when dependencies change
+  useEffect(() => {
+    generatePassword();
+    checkForWeakConfigurations();
+  }, [
+    isAlphaSelected,
+    isSmallAlphSelected,
+    isNumbersSelected,
+    isSpecialCharacterSelected,
+    passwordLength,
+    generatePassword,
+  ]);
+
+  const copyToClipboard = async () => {
+    if (!password) return;
+    try {
+      await navigator.clipboard.writeText(password);
+      setButtonText("Copied!");
+      setTimeout(() => setButtonText("Copy"), 2000);
+    } catch (err) {
+      setError("Failed to copy to clipboard");
     }
   };
 
   return (
-    <main className='h-screen bg-slate-950 cursor-default'>
-      <div className='w-fit mx-auto pt-20'>
-        <div>
-          <h1 className='text-white text-[3.3rem] text-center'>Random Password Generator.</h1>
-          <h2 className='text-white text-2xl text-center'>Ensure your online safety with strong, secure passwords—generate them effortlessly.</h2>
-        </div>
-        <div className='w-9/12 mx-auto mt-12'>
-          <div className='flex items-center'>
+    <main className="h-screen bg-slate-950 cursor-default">
+      <div className="w-fit mx-auto pt-20">
+        <h1 className="text-white text-[3.3rem] text-center">
+          Random Password Generator.
+          <VisuallyHidden>
+            Accessible heading for password generator
+          </VisuallyHidden>
+        </h1>
+        <h2 className="text-white text-2xl text-center">
+          Ensure your online safety with strong, secure passwords—generate them
+          effortlessly.
+        </h2>
+
+        <div className="w-9/12 mx-auto mt-12">
+          <div className="flex items-center">
             <input
-              type='text'
-              value={Password || 'Generating...'}
+              type="text"
+              value={password || "Generating..."}
               readOnly
-              className='w-full h-14 py-2.5 pl-[30px] bg-slate-900 text-white rounded-l-full focus:outline-none'
+              aria-label="Generated password"
+              className="w-full h-14 py-2.5 pl-[30px] bg-slate-900 text-white rounded-l-full focus:outline-none"
             />
             <button
-              onClick={handleButtonClick}
-              className={`h-14 px-2 bg-slate-900 text-white flex items-center justify-center cursor-pointer`}
+              onClick={HandleRegeneratePassword}
+              aria-label="Regenerate password"
+              className="h-14 px-4 bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800 transition-colors"
             >
-              <LuRefreshCw className={`text-[1.7rem]  ${isClicked ? 'animate-wiggle' : ''}`} />
+              <LuRefreshCw
+                className={`text-[1.7rem]  ${
+                  isClicked ? "animate-wiggle" : ""
+                }`}
+              />
             </button>
             <button
-              onClick={copyPassword}
-              className='w-[25%] h-14 cursor-pointer flex items-center bg-pink-800 ml-auto rounded-e-full'
+              onClick={copyToClipboard}
+              aria-label={buttonText}
+              className="h-14 px-8 bg-pink-800 text-white rounded-e-full hover:bg-pink-700 transition-colors"
             >
-              <span className="font-medium text-white mx-auto text-[1.5rem]">{buttonText}</span>
+              <span className="font-medium text-[1.5rem]">{buttonText}</span>
             </button>
           </div>
         </div>
-        {warningMessage && (
-          <div className='w-2/4 mx-auto mt-4 bg-orange-700 rounded-lg text-white p-2 text-base rounded-lg text-center'>
-            {warningMessage}
+
+        {error && (
+          <div
+            role="alert"
+            className="w-2/4 mx-auto mt-4 bg-red-700 text-white p-2 text-center rounded-lg"
+          >
+            {error}
           </div>
         )}
-        <div className='w-8/12 mx-auto py-2.5 px-[30px] mt-8 bg-slate-900 rounded-lg'>
-          <div className="flex gap-28 items-center">
-            <h2 className='font-NerkoOne mx-auto text-white text-3xl w-fit'>Strength Box</h2>
-
+        {warning && (
+          <div
+            role="alert"
+            className="w-2/4 mx-auto mt-4 bg-yellow-500 text-black p-2 text-center rounded-lg"
+          >
+            Warning: {warning}
           </div>
-          <div className='flex justify-between mt-5'>
-            <div className='flex flex-col gap-4'>
+        )}
+
+        <div className="w-8/12 mx-auto py-6 px-8 mt-8 bg-slate-900 rounded-lg">
+          <div className="grid grid-cols-2 gap-8">
+            <div className="flex flex-col gap-4">
               <Checkbox
-                size="md"
-                radius="md"
-                color='primary'
-                classNames={{ label: "text-white font-SUSE" }}
                 isSelected={isAlphaSelected}
+                onValueChange={(value) => {
+                  setIsAlphaSelected(value);
+                  checkForWeakConfigurations();
+                }}
+                aria-label="Include uppercase letters"
                 isDisabled={shouldDisable && isAlphaSelected}
-                onValueChange={setIsAlphaSelected}
+                color="primary"
               >
-                Capital Letters
+                <span className="text-white font-SUSE">Uppercase Letters</span>
               </Checkbox>
               <Checkbox
-                size="md"
-                radius="md"
-                color='primary'
-                classNames={{ label: "text-white font-SUSE" }}
                 isSelected={isSmallAlphSelected}
+                onValueChange={(value) => {
+                  setIsSmallAlphSelected(value);
+                  checkForWeakConfigurations();
+                }}
                 isDisabled={shouldDisable && isSmallAlphSelected}
-                onValueChange={setIsSmallAlphSelected}
+                aria-label="Include lowercase letters"
+                color="primary"
               >
-                Small Letters
+                <span className="text-white font-SUSE">Lowercase Letters</span>
               </Checkbox>
             </div>
 
-            <div className='flex flex-col gap-4'>
+            <div className="flex flex-col gap-4">
               <Checkbox
-                size="md"
-                radius="md"
-                color='primary'
-                classNames={{ label: "text-white font-SUSE" }}
                 isSelected={isSpecialCharacterSelected}
+                onValueChange={(value) => {
+                  setIsSpecialCharacterSelected(value);
+                  checkForWeakConfigurations();
+                }}
+                aria-label="Include special characters"
+                color="primary"
                 isDisabled={shouldDisable && isSpecialCharacterSelected}
-                onValueChange={setIsSpecialCharacterSelected}
               >
-                Special Characters
+                <span className="text-white font-SUSE">Special Characters</span>
               </Checkbox>
               <Checkbox
-                size="md"
-                radius="md"
-                color='primary'
-                classNames={{ label: "text-white font-SUSE" }}
                 isSelected={isNumbersSelected}
+                onValueChange={(value) => {
+                  setIsNumbersSelected(value);
+                  checkForWeakConfigurations();
+                }}
+                aria-label="Include numbers"
+                color="primary"
                 isDisabled={shouldDisable && isNumbersSelected}
-                onValueChange={setIsNumbersSelected}
               >
-                Numbers
+                <span className="text-white font-SUSE">Numbers</span>
               </Checkbox>
             </div>
           </div>
 
-          <div className="mt-10">
+          <div className="mt-10 space-y-4">
             <Slider
-              aria-label
-              showTooltip={true}
-              step={1}
-              maxValue={256}
-              minValue={0}
+              aria-label="Password length"
               value={passwordLength}
-              onChange={setPasswordLength}
+              onChange={(v) => setPasswordLength(Number(v))}
+              minValue={6}
+              showTooltip={true}
+              maxValue={256}
+              defaultValue={12}
               className="max-w-md"
+              color="primary"
             />
-            <p className="text-default-500 font-medium text-small">Password Length: {passwordLength}</p>
+            <p className="text-white font-medium">
+              Password Length: <output>{passwordLength}</output>
+            </p>
           </div>
         </div>
       </div>
-    </main >
+    </main>
   );
 }
