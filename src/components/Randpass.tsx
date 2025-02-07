@@ -182,8 +182,13 @@ const PasswordGenerator: React.FC = () => {
           </div>
         )}
 
-        <div className="w-8/12 mx-auto py-6 px-8 mt-8 bg-slate-900 rounded-lg">
-          <div className="grid grid-cols-2 gap-8">
+        <div className="w-8/12 mx-auto py-2.5 px-[30px] mt-8 bg-slate-900 rounded-lg">
+          <div className="flex gap-28 items-center">
+            <h2 className="font-NerkoOne mx-auto text-white text-3xl w-fit">
+              Strength Box
+            </h2>
+          </div>
+          <div className="flex justify-between mt-5">
             <div className="flex flex-col gap-4">
               <Checkbox
                 isSelected={isAlphaSelected}
