@@ -1,26 +1,30 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { LuRefreshCw } from "react-icons/lu";
-import { Checkbox, Slider, VisuallyHidden, useSwitch } from "@nextui-org/react";
+import { Checkbox, Slider, VisuallyHidden } from "@nextui-org/react";
+import { secureRandom } from "@/lib/utils";
+import { CharacterPools } from "./types";
 
-const secureRandom = (max) => {
-  const randomBuffer = new Uint32Array(1);
-  window.crypto.getRandomValues(randomBuffer);
-  return randomBuffer[0] % max;
+const characterPools: CharacterPools = {
+  uppercase: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  lowercase: "abcdefghijklmnopqrstuvwxyz",
+  numbers: "0123456789",
+  symbols: "!@#$%^&*()_+-=[]{}|;:,.<>?/",
 };
 
-export default function GeneratePassword() {
-  const [password, setPassword] = useState("");
-  const [isClicked, setIsClicked] = useState(false);
-  const [buttonText, setButtonText] = useState("Copy");
-  const [isAlphaSelected, setIsAlphaSelected] = useState(true);
-  const [isSmallAlphSelected, setIsSmallAlphSelected] = useState(true);
+const PasswordGenerator: React.FC = () => {
+  const [password, setPassword] = useState<string>("");
+  const [isClicked, setIsClicked] = useState<boolean>(false);
+  const [buttonText, setButtonText] = useState<string>("Copy");
+  const [isAlphaSelected, setIsAlphaSelected] = useState<boolean>(true);
+  const [isSmallAlphSelected, setIsSmallAlphSelected] = useState<boolean>(true);
   const [isSpecialCharacterSelected, setIsSpecialCharacterSelected] =
-    useState(true);
-  const [isNumbersSelected, setIsNumbersSelected] = useState(true);
-  const [passwordLength, setPasswordLength] = useState(12);
-  const [error, setError] = useState("");
-  const [warning, setWarning] = useState("");
+    useState<boolean>(true);
+  const [isNumbersSelected, setIsNumbersSelected] = useState<boolean>(true);
+  const [passwordLength, setPasswordLength] = useState<number>(12);
+  const [error, setError] = useState<string>("");
+  const [warning, setWarning] = useState<string>("");
+
   const selectedCount = [
     isAlphaSelected,
     isSmallAlphSelected,
@@ -29,34 +33,24 @@ export default function GeneratePassword() {
   ].filter(Boolean).length;
   const shouldDisable = selectedCount <= 1;
 
-  const characterPools = {
-    uppercase: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    lowercase: "abcdefghijklmnopqrstuvwxyz",
-    numbers: "0123456789",
-    symbols: "!@#$%^&*()_+-=[]{}|;:,.<>?/",
-  };
-
-  const checkForWeakConfigurations = () => {
+  const checkForWeakConfigurations = (): void => {
     let warningMessage = "";
 
-    // Check if password length is too short
     if (passwordLength < 12) {
       warningMessage += "Password length is too short. ";
     }
 
-    // Check if too few character types are selected
     if (selectedCount <= 2) {
       warningMessage += "Fewer character types reduce password strength. ";
     }
 
-    // Update the warning state
     setWarning(warningMessage.trim());
   };
 
-  const generatePassword = useCallback(async () => {
+  const generatePassword = useCallback(async (): Promise<void> => {
     try {
       setError("");
-      const enabledPools = [
+      const enabledPools: string[] = [
         ...(isAlphaSelected ? [characterPools.uppercase] : []),
         ...(isSmallAlphSelected ? [characterPools.lowercase] : []),
         ...(isNumbersSelected ? [characterPools.numbers] : []),
@@ -67,13 +61,14 @@ export default function GeneratePassword() {
         throw new Error("Enable at least one character type");
       }
 
-      // Generate base password using cryptographically secure random values
-      let passwordArray = Array.from({ length: passwordLength }, () => {
-        const pool = enabledPools[secureRandom(enabledPools.length)];
-        return pool[secureRandom(pool.length)];
-      });
+      let passwordArray: string[] = Array.from(
+        { length: passwordLength },
+        () => {
+          const pool = enabledPools[secureRandom(enabledPools.length)];
+          return pool[secureRandom(pool.length)];
+        }
+      );
 
-      // Secure Fisher-Yates shuffle with crypto RNG
       for (let i = passwordArray.length - 1; i > 0; i--) {
         const j = secureRandom(i + 1);
         [passwordArray[i], passwordArray[j]] = [
@@ -97,26 +92,25 @@ export default function GeneratePassword() {
     passwordLength,
   ]);
 
-  const HandleRegeneratePassword = () => {
+  const HandleRegeneratePassword = (): void => {
     setIsClicked(true);
     setTimeout(() => setIsClicked(false), 2000);
     generatePassword();
   };
 
-  // Regenerate when dependencies change
   useEffect(() => {
     generatePassword();
     checkForWeakConfigurations();
   }, [
+    generatePassword,
     isAlphaSelected,
     isSmallAlphSelected,
     isNumbersSelected,
     isSpecialCharacterSelected,
     passwordLength,
-    generatePassword,
   ]);
 
-  const copyToClipboard = async () => {
+  const copyToClipboard = async (): Promise<void> => {
     if (!password) return;
     try {
       await navigator.clipboard.writeText(password);
@@ -265,4 +259,6 @@ export default function GeneratePassword() {
       </div>
     </main>
   );
-}
+};
+
+export default PasswordGenerator;
